@@ -55,7 +55,6 @@ El código está en [Temporizador/Temporizador.ino](Temporizador/Temporizador.in
    └──────────────────────────(botón o 5 s)─────────────────────────────────────────────┘
 ```
 
-0. **Arranque:** al encender, la pantalla muestra **"Temporizador v1.0.0"** durante 2,5 s. Si lo ves, la placa, el programa y la OLED funcionan.
 1. **Reposo:** la pantalla está apagada.
 2. **Selección:** la primera pulsación enciende la pantalla y muestra **5**.
    - **Pulsación corta:** avanza 5 → 10 → 15 → 20 → 5…
@@ -73,8 +72,7 @@ Están como constantes al inicio del sketch:
 | Constante | Valor | Para qué sirve |
 |---|---|---|
 | `PIN_BOTON_TEMP` / `PIN_BUZZER_TEMP` / `PIN_LED_ALARMA` | 1 / 2 / 3 | Pines del botón, el buzzer y el LED |
-| `OLED_DIRECCION` | `0x3C` | Dirección I2C de la pantalla. Si no responde, el sketch prueba `0x3D` solo. |
-| `DURACION_INICIO` | 2500 ms | Tiempo que se muestra el mensaje de versión al arrancar |
+| `OLED_DIRECCION` | `0x3C` | Dirección I2C de la pantalla (algunos módulos usan `0x3D`) |
 | `PRESETS` | 5, 10, 15, 20 | Valores que recorre la pulsación corta |
 | `VALOR_MAXIMO` | 995 | Máximo de minutos seleccionables |
 | `TIEMPO_PULSO_LARGO` | 2000 ms | Tiempo que hay que mantener el botón para empezar a incrementar o para cancelar |
@@ -97,7 +95,9 @@ Están como constantes al inicio del sketch:
    https://files.seeedstudio.com/arduino/package_seeeduino_boards_index.json
    https://siliconlabs.github.io/arduino/package_arduinosilabs_index.json
    ```
-3. Abre **Herramientas → Placa → Gestor de tarjetas**, busca **"Seeed SAMD"** e instala **Seeed SAMD Boards**. Este proyecto se probó con la versión 1.8.6.
+3. Abre **Herramientas → Placa → Gestor de tarjetas**
+4. Instalar **"Seeed LabsS"**
+5. Luego busca **"Seeed SAMD"** e instala **Seeed SAMD Boards**. Este proyecto se probó con la versión 1.8.6.
 
 ### 2. Instalar las librerías
 
@@ -133,37 +133,12 @@ Abre `Temporizador/Temporizador.ino`. El archivo tiene que estar dentro de una c
 
 ## Solución de problemas
 
-### Diagnóstico por el Monitor Serie
-
-El sketch informa lo que hace por USB. Abre **Herramientas → Monitor Serie** en el puerto del XIAO (no el del bootloader) a 115200 baudios. Los mensajes del botón y de cada estado se ven en vivo. Los mensajes de arranque se pierden si el monitor se abre después; los de error se repiten cada 2 s.
-
-El LED naranja de la placa también sirve de indicador: **3 parpadeos rápidos** al arrancar y después **un parpadeo cada medio segundo** mientras el programa corre. Si queda fijo o no parpadea, el programa está colgado.
-
-Una salida completa se ve así:
-
-```
-Temporizador 1.0.0
-Buscando dispositivos I2C (SDA=D4, SCL=D5)...
-  Encontrado en 0x3C
-OLED iniciada en 0x3C
-Estado: REPOSO
-Listo: presiona el boton para seleccionar minutos
-Boton: presionado
-Estado: SELECCION
-```
-
-- **No aparece nada:** el programa no se cargó o no corre. Vuelve a subirlo; si falla, usa el modo bootloader.
-- **`Ninguno` en la búsqueda I2C:** la OLED no responde. Revisa SDA→D4, SCL→D5, VCC→3V3, GND, y que no estén cruzados SDA y SCL.
-- **No aparece `Boton: presionado` al apretar:** el botón está mal cableado o usa las patitas equivocadas (en los pulsadores de 4 patas, usa dos en diagonal).
-
-
 | Síntoma | Causa | Solución |
 |---|---|---|
 | `No DFU capable USB device available` / `exit status 74` | Está elegida una placa que se programa por DFU, como Arduino Nano ESP32 o UNO R4. El XIAO SAMD21 se programa con `bossac`, no con DFU. | Elige **Seeeduino XIAO** en el menú de placas. |
 | `expected unqualified-id before numeric constant` en `PIN_LED` | El core del XIAO ya define las macros `PIN_LED`, `LED_BUILTIN`, etc. | No uses esos nombres para tus constantes. El sketch usa `PIN_LED_ALARMA`. |
 | No aparece el puerto COM | Cable USB que solo carga, o placa colgada | Usa un cable USB-C **de datos**. Si no basta, entra al modo bootloader (fila siguiente). |
 | La subida falla o la placa no responde | El programa cargado bloquea el USB | **Modo bootloader:** une con un cable **dos veces seguidas y rápido** los pads **RST** junto al USB-C. El LED naranja empieza a pulsar y aparece un COM nuevo. Elige ese puerto y vuelve a subir. |
-| La placa se carga bien pero no hace nada: pantalla apagada, botón sin respuesta, sin Monitor Serie | El programa se cuelga en `noTone()`. En el core Seeed SAMD 1.8.6, llamar a `noTone()` antes de haber usado `tone()` deja al micro esperando un timer sin reloj. | No llames a `noTone()` si antes no sonó `tone()`. El sketch ya lo evita en `salidasAlarma()`. |
 | El LED parpadea rápido y la pantalla no enciende | El sketch no encuentra la OLED | Revisa SDA en D4, SCL en D5 y la alimentación en 3V3. Prueba `OLED_DIRECCION = 0x3D`. |
 | El botón no responde o hace cosas solo | Botón mal cableado | El botón va entre **D1 y GND**, nunca a 3V3 o 5V. |
 | El buzzer suena muy bajo o no suena | Falta corriente | Usa el transistor NPN descrito en [Precauciones](#precauciones). |
